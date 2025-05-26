@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"http-from-tcp/internal/request"
 	"io"
 	"log"
 	"net"
@@ -15,16 +16,22 @@ func main() {
 	}
 	defer ln.Close()
 
+	fmt.Println("Listening on port 42069")
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Failed to establish connection: %v\n", err)
+			continue
 		}
 		fmt.Println("Connection accepted")
-		ch := getLinesChannel(conn)
-		for line := range ch {
-			fmt.Printf("%s\n", line)
+		req, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Printf("Failed to parse request: %v\n", err)
+			conn.Close()
+			continue
 		}
+		fmt.Printf("Request line:\n- Method: %s\n- Target: %s\n- Version: %s\n", req.RequestLine.Method, req.RequestLine.RequestTarget, req.RequestLine.HttpVersion)
 	}
 }
 
